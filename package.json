@@ -15,6 +15,7 @@
         "multer": "^1.4.5-lts.1",
         "pg": "^8.11.3",
         "sequelize": "^6.33.0",
-        "sql-migrations": "^1.0.7"
+        "sql-migrations": "^1.0.7",
+        "uuid": "^9.0.1"
     }
 }

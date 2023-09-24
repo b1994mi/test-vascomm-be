@@ -9,7 +9,11 @@ CREATE TABLE public.users
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamptz,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (role_id)
+        REFERENCES public.roles (id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
 );
 
 CREATE TRIGGER updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE PROCEDURE ON_UPDATE_CURRENT_TIMESTAMP();

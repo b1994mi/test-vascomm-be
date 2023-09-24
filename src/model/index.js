@@ -8,7 +8,9 @@ const sequelize = new Sequelize(process.env.PG_DSN, {
 
 const db = {
     sequelize,
+    Role: require('./Role')(sequelize, DataTypes),
     User: require('./User')(sequelize, DataTypes),
+    RefreshToken: require('./RefreshToken')(sequelize, DataTypes),
 }
 
 Object.entries(db).forEach(([, m]) => {

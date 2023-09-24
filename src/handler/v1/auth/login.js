@@ -1,7 +1,7 @@
-const { ROLE_ADMIN } = require('../../helper/const')
+const { Op } = require("sequelize")
 
 /**
- * @typedef {import("../../helper/depInject")} DI
+ * @typedef {import("../../../helper/dependencyInjection")} DI
  * @param {DI} param0
  */
 module.exports = ({ db, bcrypt, jwt, uuid }) => {
@@ -33,40 +33,36 @@ module.exports = ({ db, bcrypt, jwt, uuid }) => {
         let user
         try {
             user = await db.User.unscoped().findOne({
-                where: { email },//or phone
+                where: {
+                    [Op.or]: [{ email }, { phoneNumber }],
+                },
+                include: db.Role,
             })
         } catch (error) {
-            return res.status(422).json({ code: res.statusCode, error: error.message })
+            return res.status(422).json({
+                code: res.statusCode,
+                message: error.message
+            })
         }
 
         if (!user || !user?.isVerified) {
             return res.status(403).json({
                 code: res.statusCode,
-                error: `user with email ${email} was not found or is not verified yet`
+                message: `user with email ${email} was not found or is not verified yet`
             })
         }
-
-        let roles = [], permissions = [], isAdmin = false
-        user?.Roles?.forEach(e => {
-            isAdmin = isAdmin || e?.obfuscatedCode === ROLE_ADMIN
-            roles.push(e?.obfuscatedCode)
-
-            e?.Permissions?.forEach(el => {
-                permissions.push(el?.id)
-            })
-        })
 
         const isCorrectPass = await bcrypt.compare(password, user?.password)
         if (!isCorrectPass) {
             return res.status(403).json({
                 code: res.statusCode,
-                error: `password for ${email} is not correct`
+                message: `password for ${email} is not correct`
             })
         }
 
         const expiredAt = new Date()
         expiredAt.setHours(
-            expiredAt.getHours() + parseInt(process.env.REFRESH_TOKEN_EXP)
+            expiredAt.getHours() + parseInt(process.env.APP_REFRESH_TOKEN_EXP)
         )
 
         let refreshToken
@@ -77,19 +73,23 @@ module.exports = ({ db, bcrypt, jwt, uuid }) => {
                 expiredAt,
             })
         } catch (error) {
-            return res.status(422).json({ code: res.statusCode, error: error.message })
+            return res.status(422).json({
+                code: res.statusCode,
+                message: error.message
+            })
         }
 
         const token = jwt.sign({
             "user_id": user.id,
-            "username": user.username,
-            "is_admin": isAdmin,
-            "role": roles,
-            "permission": permissions,
-        }, process.env.SALT_APP, {
-            expiresIn: process.env.TOKEN_EXP
+            "role": user.role,
+        }, process.env.APP_SIGN, {
+            expiresIn: process.env.APP_JWT_EXP
         })
 
-        return res.status(200).json({ code: res.statusCode, token, refresh_token: refreshToken.token })
+        return res.status(200).json({
+            code: res.statusCode,
+            refresh_token: refreshToken.token,
+            token,
+        })
     }
 }
